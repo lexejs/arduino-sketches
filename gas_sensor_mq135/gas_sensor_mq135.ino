@@ -1,8 +1,8 @@
-const unsigned int mySensValsSize = 6,
-                   logEveryLoops = 500,
-                   minRiseLimit = 20,
-                   minValueLimit = 200,
-                   normValue = 170;
+const int mySensValsSize = 6,
+          logEveryLoops = 500,
+          minRiseLimit = 20,
+          minValueLimit = 250,
+          normValue = 170;
 
 #include <TM1637.h>
 const int ledPin =  LED_BUILTIN;// the number of the LED pin
@@ -76,12 +76,13 @@ void loop() {
 
     isBelowNorm = isBelowNorm && mySensVals[count] < normValue;
 
-    if (mySensVals[count] != 0 // skip initialized as 0 values
-        && mySensVals[count + 1] > mySensVals[count]) // and skip negatives
+    if (mySensVals[count] != 0) // skip initialized as 0 values
       v1 = v1 + mySensVals[count + 1] - mySensVals[count];
   }
 
-  isTriggered = v1 > minRiseLimit
+  isTriggered = false;
+
+  isTriggered = v1 > minRiseLimit &&  v1 > 0
                 || sensorValue > minValueLimit
                 || val > minValueLimit;
 
@@ -91,14 +92,18 @@ void loop() {
     if (loops > logEveryLoops) {
       Serial.print("LOG\t ");
     } else {
-      Serial.print("!!!\t ");
+      Serial.print("!!! TRIGGERED \t ");
     }
     Serial.print("sensor = ");   Serial.print(sensorValue);
     Serial.print("\t Vs = ");    Serial.print(val);
     Serial.print("\t Q = ");    Serial.print(pVal);    Serial.print("%");
-    Serial.print("\t up = ");
-    Serial.println(v1);
+    
+    //Serial.print("\t  v1 > minRiseLimit = ");    Serial.print( v1 > minRiseLimit);
+    //Serial.print("\t isTriggered = ");    Serial.print(isTriggered);
+    //Serial.print("\t up = ");
+    //Serial.print(v1);
 
+    Serial.println("");
     loops = 0;
   }
 
