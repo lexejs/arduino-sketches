@@ -1,5 +1,12 @@
+const unsigned int mySensValsSize = 6,
+                   logEveryLoops = 500,
+                   minRiseLimit = 20,
+                   minValueLimit = 200,
+                   normValue = 170;
 
 #include <TM1637.h>
+const int ledPin =  LED_BUILTIN;// the number of the LED pin
+int ledState = LOW;
 
 // These constants won't change. They're used to give names to the pins used:
 const int analogInPin = A0;  // Analog input pin that the potentiometer is attached to
@@ -19,25 +26,26 @@ uint8_t Cmd_SetData;
 uint8_t Cmd_SetAddr;
 uint8_t Cmd_DispCtrl;
 boolean _PointFlag;
-int v1 = 150, v2 = 150, v3 = 150, val = 150, pVal = 0;
-
-const unsigned int mySensValsSize = 6;
+int v1 , v2, v3 = normValue, val , pVal = 0, loops = 0;
 int mySensVals[mySensValsSize];
+bool isTriggered = false, isBelowNorm = true;
 
 void setup()
 {
+  pinMode(ledPin, OUTPUT);
+
   tm1637.init();
   tm1637.set(3);//BRIGHT_TYPICAL = 2,BRIGHT_DARKEST = 0,BRIGHTEST = 7;
 
   Serial.begin(9600);
 
   for (int count = 0; count < mySensValsSize; count++) {
-    mySensVals[count] = 150;
+    mySensVals[count] = 0;
   }
 }
 
 void loop() {
-
+  loops++;
   sensorValue = analogRead(analogInPin);
 
   if (sensorValue > maxVal) {
@@ -48,42 +56,59 @@ void loop() {
     minVal = sensorValue;
   }
 
+
+  // calc smoothing values and percentage
   v2 = v3;
   v3 = sensorValue;
-  val = v2 + 0.2 * (v2 - v3);
-
+  val = v2 + 0.2 * (-v2 + v3);
   pVal = 100 * ((val - minVal) / (float)(maxVal - minVal));
+
 
   for (int count = 0; count < mySensValsSize - 1; count++) {
     mySensVals[count] = mySensVals[count + 1];
   }
-  
-  mySensVals[mySensValsSize-1]=sensorValue;
-  
+  mySensVals[mySensValsSize - 1] = sensorValue;
+
+  isBelowNorm = true;
+
   v1 = 0;
   for (int count = 0; count < mySensValsSize - 1; count++) {
-    v1 = v1 + mySensVals[count + 1] - mySensVals[count];
+
+    isBelowNorm = isBelowNorm && mySensVals[count] < normValue;
+
+    if (mySensVals[count] != 0 // skip initialized as 0 values
+        && mySensVals[count + 1] > mySensVals[count]) // and skip negatives
+      v1 = v1 + mySensVals[count + 1] - mySensVals[count];
   }
+
+  isTriggered = v1 > minRiseLimit
+                || sensorValue > minValueLimit
+                || val > minValueLimit;
 
   // print the results to the Serial Monitor:
-  if (sensorValue > 200 || val > 200) {
-    Serial.print("sensor = ");
-    Serial.print(sensorValue);
+  if (isTriggered || loops > logEveryLoops) {
 
-    Serial.print("\t s = ");
-    Serial.print(val);
-
-    Serial.print("\t P = ");
-    Serial.print(pVal);
-    Serial.print("%");
-
-    Serial.print("\t v1 sum = ");
+    if (loops > logEveryLoops) {
+      Serial.print("LOG\t ");
+    } else {
+      Serial.print("!!!\t ");
+    }
+    Serial.print("sensor = ");   Serial.print(sensorValue);
+    Serial.print("\t Vs = ");    Serial.print(val);
+    Serial.print("\t Q = ");    Serial.print(pVal);    Serial.print("%");
+    Serial.print("\t up = ");
     Serial.println(v1);
 
-  } else if (v1 > 10) {
-    Serial.print("v1 sum = ");
-    Serial.println(v1);
+    loops = 0;
   }
+
+
+  if (isTriggered) {
+    ledState = HIGH;
+  } else if (isBelowNorm) {
+    ledState = LOW;
+  }
+  digitalWrite(ledPin, ledState);
 
   DigitDisplayWrite(CLK, DIO, pVal);
   delay(500);
