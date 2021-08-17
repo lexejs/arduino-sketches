@@ -1,41 +1,36 @@
 const int mySensValsSize = 6,
           logEveryLoops = 500,
           minRiseLimit = 20,
-          minValueLimit = 250,
-          normValue = 170;
+          minValueLimit = 220,
+          normValue = 190,
+          ledPin =  LED_BUILTIN,
+          analogInPin = A0,
+          minHighValueLoops = 10
+                              ;
 
 #include <TM1637.h>
-const int ledPin =  LED_BUILTIN;// the number of the LED pin
-int ledState = LOW;
-
-// These constants won't change. They're used to give names to the pins used:
-const int analogInPin = A0;  // Analog input pin that the potentiometer is attached to
-const int analogOutPin = A5; // Analog output pin that the LED is attached to
-
-int sensorValue = 0;        // value read from the pot
-int outputValue = 0, minVal = 150, maxVal = 750;      // value output to the PWM (analog out)
-
 #include "TM1637.h"
 #define CLK 2//pins definitions for TM1637 and can be changed to other ports
 #define DIO 3
 TM1637 tm1637(CLK, DIO);
 uint8_t Clkpin;
 uint8_t Datapin;
-
 uint8_t Cmd_SetData;
 uint8_t Cmd_SetAddr;
 uint8_t Cmd_DispCtrl;
 boolean _PointFlag;
-int v1 , v2, v3 = normValue, val , pVal = 0, loops = 0;
+int v1 , v2, v3 = normValue, val , pVal = 0, loops = 0, highValueLoops = 0;
 int mySensVals[mySensValsSize];
 bool isTriggered = false, isBelowNorm = true;
+int ledState = LOW, sensorValue , outputValue = 0, minVal = 150, maxVal = 750;
+// value output to the PWM (analog out)
 
 void setup()
 {
   pinMode(ledPin, OUTPUT);
 
   tm1637.init();
-  tm1637.set(3);//BRIGHT_TYPICAL = 2,BRIGHT_DARKEST = 0,BRIGHTEST = 7;
+  tm1637.set(2);//BRIGHT_TYPICAL = 2,BRIGHT_DARKEST = 0,BRIGHTEST = 7;
 
   Serial.begin(9600);
 
@@ -61,7 +56,7 @@ void loop() {
   v2 = v3;
   v3 = sensorValue;
   val = v2 + 0.2 * (-v2 + v3);
-  pVal = 100 * ((val - minVal) / (float)(maxVal - minVal));
+  //pVal = 100 * ((val - minVal) / (float)(maxVal - minVal));
 
 
   for (int count = 0; count < mySensValsSize - 1; count++) {
@@ -96,26 +91,31 @@ void loop() {
     }
     Serial.print("sensor = ");   Serial.print(sensorValue);
     Serial.print("\t Vs = ");    Serial.print(val);
-    Serial.print("\t Q = ");    Serial.print(pVal);    Serial.print("%");
-    
+    //Serial.print("\t Q = ");    Serial.print(pVal);    Serial.print("%");
+
     //Serial.print("\t  v1 > minRiseLimit = ");    Serial.print( v1 > minRiseLimit);
     //Serial.print("\t isTriggered = ");    Serial.print(isTriggered);
-    //Serial.print("\t up = ");
-    //Serial.print(v1);
+    Serial.print("\t up = ");
+    Serial.print(v1);
 
     Serial.println("");
     loops = 0;
   }
 
-
+  if (  highValueLoops > 0) {
+    highValueLoops++;
+  }
   if (isTriggered) {
     ledState = HIGH;
-  } else if (isBelowNorm) {
+    highValueLoops++;
+  }
+  else if (isBelowNorm && highValueLoops > minHighValueLoops) {
     ledState = LOW;
+    highValueLoops = 0;
   }
   digitalWrite(ledPin, ledState);
 
-  DigitDisplayWrite(CLK, DIO, pVal);
+  DigitDisplayWrite(CLK, DIO, val);
   delay(500);
 }
 
