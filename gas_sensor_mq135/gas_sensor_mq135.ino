@@ -21,7 +21,7 @@ boolean _PointFlag;
 int v1, v2, v3 = normValue, val, pVal = 0, loops = 0, highValueLoops = 0;
 int mySensVals[mySensValsSize];
 bool isTriggered = false, isBelowNorm = true;
-int ledState = LOW, sensorValue, outputValue = 0, minVal = normValue, maxVal = normValue * 5;
+int ledState = LOW, sensorValue, co2lvl, outputValue = 0, minVal = normValue, maxVal = normValue * 5;
 // value output to the PWM (analog out)
 
 void setup()
@@ -59,6 +59,11 @@ void loop()
   v3 = sensorValue;
   val = v2 + 0.2 * (-v2 + v3);
   //pVal = 100 * ((val - minVal) / (float)(maxVal - minVal));
+
+  co2lvl = val - 64;
+  co2lvl = map(co2lvl, 0, 1024, 400, 5000);
+  //correction -180
+  co2lvl = co2lvl-180;
 
   for (int count = 0; count < mySensValsSize - 1; count++)
   {
@@ -100,13 +105,12 @@ void loop()
   }
   digitalWrite(ledPin, ledState);
 
-  DigitDisplayWrite(CLK, DIO, val);
+  DigitDisplayWrite(CLK, DIO, co2lvl);
   delay(500);
 }
 
 void printSerial()
 {
-
   // print the results to the Serial Monitor:
   if (isTriggered || loops > logEveryLoops)
   {
@@ -120,12 +124,14 @@ void printSerial()
       Serial.print("!!! TRIGGERED ");
     }
     //Serial.print("sensor = ");   Serial.print(sensorValue);
-    Serial.print("\t Vs = ");
+    Serial.print("\t Val = ");
     Serial.print(val);
     //Serial.print("\t Q = ");    Serial.print(pVal);    Serial.print("%");
-
+    Serial.print("\t co2 = ");
+    Serial.print(co2lvl);
     //Serial.print("\t  v1 > minRiseLimit = ");    Serial.print( v1 > minRiseLimit);
-    Serial.print("\t min = ");    Serial.print(minVal);
+    Serial.print("\t min = ");
+    Serial.print(minVal);
     Serial.print("\t up = ");
     Serial.print(v1);
 
