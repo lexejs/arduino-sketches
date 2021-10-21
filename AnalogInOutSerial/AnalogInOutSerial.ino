@@ -25,11 +25,12 @@ const int analogInPin = A6, // Analog input pin that the potentiometer is attach
     analogOutPin = 3,
           delayM = 100,
           touchPin = 4,
-          buttonPin = 2;
+          buttonPin = 2,
+          minSensorLevel = 800;
 
-const long loopsTarget = 2000 / delayM * 10, // 10 secs
-    loopsSticked = 800 / delayM,             // 400 ms
-    loopsClicked = 1000 / delayM;            // 500 ms
+const long loopsTarget = 2000 / delayM * 120, // * secs
+    loopsSticked = 800 / delayM,             // 1/2 ms
+    loopsClicked = 600 / delayM;             // 1/2 ms
 
 int sValue = 1,
     prevValue = 0,
@@ -45,6 +46,19 @@ bool isTriggered = false, isChanged = false, isClicked = false, isClickChanged =
 
 long loops = 0, loopsStick = 0, loopsClick = 0;
 
+enum action
+{
+  none,      //0
+  triggered, //1
+  sticked,   //2
+  clicked1,  //3
+  clicked2,  //4
+  clicked3,  //5
+  keepOn     //6
+};
+
+action doNextAction = none;
+
 void setup()
 {
   // initialize serial communications at 9600 bps:
@@ -56,6 +70,7 @@ void setup()
 
 void loop()
 {
+
   // read the analog in value:
   sensorValue = analogRead(analogInPin);
   touchState = digitalRead(touchPin);
@@ -78,6 +93,7 @@ void loop()
   if (isStickDetected == false && isClicked && loopsStick++ > loopsSticked)
   {
     isStickDetected = true;
+
     Serial.println(" Sticked !!!  \t");
   }
 
@@ -87,8 +103,12 @@ void loop()
     clickCount++;
   }
 
+  // handle events below
+
   if (isStickDetected)
   {
+    doNextAction = sticked;
+
     clickCount = 0;
   }
 
@@ -98,26 +118,71 @@ void loop()
     Serial.print(" clickCount !!!  \t");
     Serial.println(clickCount);
     //do clickCount specific logic
+    if (clickCount == 1)
+      doNextAction = clicked1;
+    else if (clickCount == 3)
+      doNextAction = clicked3;
+
     clickCount = 0;
   }
 
   // map it to the range of the analog out:
-  outputValue = max(0, map(sensorValue, 800, 1023, 0, 255));
-
-  if (isTriggered)
+  if (doNextAction != clicked3 && doNextAction != keepOn)
   {
+
+    if (sensorValue > minSensorLevel && sensorValue < 900)
+      outputValue = max(0, map(sensorValue, minSensorLevel, 900, 0, 255));
+
+    else if (sensorValue > 900)
+    {
+      outputValue = 255 - max(0, map(sensorValue, 900, 1023, 0, 255 - 25));
+    }
+  }
+
+  if (isTriggered && (doNextAction == none|| doNextAction == triggered))
+  {
+    doNextAction = triggered;
     loops = 0;
   }
-  else if (loops++ > loopsTarget)
+  else if (loops++ > loopsTarget && doNextAction == triggered)
+  {
+    outputValue = 0;
+    doNextAction = none;
+  }
+
+  if (doNextAction == clicked1)
+  {
+
+    if (sValue > 0)
+    {
+      doNextAction = none;
+      outputValue = 0;
+    }
+    else
+    {
+      if (minSensorLevel > sensorValue)
+      {
+        outputValue = 255;
+      }
+      doNextAction = keepOn;
+      loops = 0;
+      sValue = min(15, outputValue / 2);
+    }
+  }
+  else if (doNextAction == clicked3)
+  {
+    outputValue = 255;
+    if (sValue == 0)
+      sValue = min(15, outputValue / 2);
+  }
+  else if (doNextAction == none)
   {
     outputValue = 0;
   }
 
-  prevValue = sValue;
-
   absValue = abs(sValue - outputValue);
 
-  if (absValue > 25 && sValue > 25)
+  if (absValue > 10 && sValue > 10)
   {
     sValue = outputValue * 0.1 + sValue * 0.9;
   }
@@ -134,30 +199,38 @@ void loop()
   // change the analog out value:
   analogWrite(analogOutPin, sValue);
 
-  if (isTriggered)
+  if (absValue > 5 || isChanged || isClickChanged)
   {
-  }
-  else
-  {
-  }
 
-  if (absValue > 1 || isChanged || isClickChanged)
-  {
-    if (isTriggered)
-    {
-      Serial.print(" isTriggered !!!  \t");
-    }
-    if (isClickChanged)
-    {
-      Serial.print(" isClickChanged !!!  \t");
-    }
     // print the results to the Serial Monitor:
-    Serial.print("sensor = ");
-    Serial.print(sensorValue);
+    Serial.print("absValue = ");
+    Serial.print(absValue);
+
     Serial.print("\t sValue = ");
     Serial.print(sValue);
-    Serial.print("\t output = ");
-    Serial.println(outputValue);
+
+    Serial.print("\t outputValue = ");
+    Serial.print(outputValue);
+
+    Serial.print("\t sensorValue = ");
+    Serial.print(sensorValue);
+
+    Serial.print("\t loops = ");
+    Serial.print(loops);
+
+    Serial.print("\t doNextAction = ");
+    Serial.print(doNextAction);
+
+    if (isTriggered)
+    {
+      Serial.print("\t isTriggered !");
+    }
+
+    if (isClickChanged)
+    {
+      Serial.print("\t isClickChanged !");
+    }
+    Serial.println("|");
   }
 
   // wait 2 milliseconds before the next loop for the analog-to-digital
