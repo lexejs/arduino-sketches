@@ -21,7 +21,7 @@
 */
 
 // These constants won't change. They're used to give names to the pins used:
-const int analogInPin = A6, 
+const int analogInPin = A6,
 
           touchPin = 4,
 
@@ -31,6 +31,8 @@ const int analogInPin = A6,
           buttonPin4 = 8,
 
           powerOutPin = 9,
+
+          power5vPin = 10,
 
           delayM = 100,
           minSensorLevel = 800;
@@ -76,6 +78,9 @@ void setup()
   pinMode(buttonPin3, INPUT);
   pinMode(buttonPin4, INPUT);
   pinMode(touchPin, INPUT);
+
+  pinMode(power5vPin, OUTPUT);
+  digitalWrite(power5vPin, HIGH);
 }
 
 void loop()
@@ -86,10 +91,7 @@ void loop()
   touchState = digitalRead(touchPin);
 
   isChanged = isTriggered;
-  isTriggered = digitalRead(buttonPin1) == HIGH
-    || digitalRead(buttonPin2) == HIGH 
-    || digitalRead(buttonPin3) == HIGH 
-    || digitalRead(buttonPin4) == HIGH;
+  isTriggered = digitalRead(buttonPin1) == HIGH || digitalRead(buttonPin2) == HIGH || digitalRead(buttonPin3) == HIGH || digitalRead(buttonPin4) == HIGH;
   isChanged = isChanged != isTriggered;
 
   isClickChanged = isClicked;
