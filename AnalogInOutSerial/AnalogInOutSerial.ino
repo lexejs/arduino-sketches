@@ -22,15 +22,22 @@
 
 // These constants won't change. They're used to give names to the pins used:
 const int analogInPin = A6, // Analog input pin that the potentiometer is attached to
-    analogOutPin = 3,
-          delayM = 100,
+
+    analogOutPin = 9,
+
           touchPin = 4,
-          buttonPin = 2,
+
+          buttonPin1 = 5,
+          buttonPin2 = 6,
+          buttonPin3 = 7,
+          buttonPin4 = 8,
+
+          delayM = 100,
           minSensorLevel = 800;
 
 const long loopsTarget = 2000 / delayM * 120, // * secs
-    loopsSticked = 800 / delayM,             // 1/2 ms
-    loopsClicked = 600 / delayM;             // 1/2 ms
+    loopsSticked = 800 / delayM,              // 1/2 ms
+    loopsClicked = 600 / delayM;              // 1/2 ms
 
 int sValue = 1,
     prevValue = 0,
@@ -64,7 +71,10 @@ void setup()
   // initialize serial communications at 9600 bps:
   Serial.begin(9600);
 
-  pinMode(buttonPin, INPUT);
+  pinMode(buttonPin1, INPUT);
+  pinMode(buttonPin2, INPUT);
+  pinMode(buttonPin3, INPUT);
+  pinMode(buttonPin4, INPUT);
   pinMode(touchPin, INPUT);
 }
 
@@ -74,10 +84,12 @@ void loop()
   // read the analog in value:
   sensorValue = analogRead(analogInPin);
   touchState = digitalRead(touchPin);
-  buttonState = digitalRead(buttonPin);
 
   isChanged = isTriggered;
-  isTriggered = buttonState == HIGH;
+  isTriggered = digitalRead(buttonPin1) == HIGH
+    || digitalRead(buttonPin2) == HIGH 
+    || digitalRead(buttonPin3) == HIGH 
+    || digitalRead(buttonPin4) == HIGH;
   isChanged = isChanged != isTriggered;
 
   isClickChanged = isClicked;
@@ -139,7 +151,7 @@ void loop()
     }
   }
 
-  if (isTriggered && (doNextAction == none|| doNextAction == triggered))
+  if (isTriggered && (doNextAction == none || doNextAction == triggered))
   {
     doNextAction = triggered;
     loops = 0;
