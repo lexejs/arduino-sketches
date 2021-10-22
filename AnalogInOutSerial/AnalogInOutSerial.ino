@@ -21,9 +21,7 @@
 */
 
 // These constants won't change. They're used to give names to the pins used:
-const int analogInPin = A6, // Analog input pin that the potentiometer is attached to
-
-    analogOutPin = 9,
+const int analogInPin = A6, 
 
           touchPin = 4,
 
@@ -31,6 +29,8 @@ const int analogInPin = A6, // Analog input pin that the potentiometer is attach
           buttonPin2 = 6,
           buttonPin3 = 7,
           buttonPin4 = 8,
+
+          powerOutPin = 9,
 
           delayM = 100,
           minSensorLevel = 800;
@@ -209,7 +209,7 @@ void loop()
 
   //sendValue = isTriggered?sValue:0;
   // change the analog out value:
-  analogWrite(analogOutPin, sValue);
+  analogWrite(powerOutPin, sValue);
 
   if (absValue > 5 || isChanged || isClickChanged)
   {
